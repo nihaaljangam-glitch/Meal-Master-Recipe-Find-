@@ -1,12 +1,12 @@
-// Constants & State
+
 const API_BASE_URL = 'https://www.themealdb.com/api/json/v1/1';
 let state = {
     favorites: JSON.parse(localStorage.getItem('mealMasterFavorites')) || [],
     shoppingList: JSON.parse(localStorage.getItem('mealMasterShopping')) || [],
-    currentView: 'home', // 'home', 'favorites', 'shopping'
+    currentView: 'home',
 };
 
-// DOM Elements
+
 const elements = {
     nav: {
         home: document.getElementById('nav-home'),
@@ -48,24 +48,24 @@ const elements = {
     }
 };
 
-// Initializer
 async function init() {
     bindEvents();
     updateBadges();
     await fetchCategories();
     renderFavorites();
     renderShoppingList();
-    
-    // Initial fetch to populate screen
-    fetchRecipesByName(''); 
+
+
+    fetchRecipesByName('');
 }
 
-// Event Binding
+
 function bindEvents() {
-    // Nav
+
     elements.nav.home.addEventListener('click', () => switchView('home'));
     elements.nav.favorites.addEventListener('click', () => switchView('favorites'));
     elements.nav.shopping.addEventListener('click', () => switchView('shopping'));
+
 
     // Search
     elements.search.btn.addEventListener('click', handleSearch);
@@ -73,25 +73,28 @@ function bindEvents() {
         if (e.key === 'Enter') handleSearch();
     });
     
-    // Changing category automatically triggers search
-    // but we'll clear text input to avoid confusion
+    // Dynamic 'Search as you type'
+    const debouncedSearch = debounce(handleSearch, 400);
+    elements.search.input.addEventListener('input', debouncedSearch);
+
+
     elements.search.category.addEventListener('change', () => {
         elements.search.input.value = '';
         const cat = elements.search.category.value;
-        if(cat) {
+        if (cat) {
             fetchRecipesByCategory(cat);
         } else {
             fetchRecipesByName('');
         }
     });
 
-    // Modal
+
     elements.modal.closeBtn.addEventListener('click', closeModal);
     elements.modal.overlay.addEventListener('click', (e) => {
-        if(e.target === elements.modal.overlay) closeModal();
+        if (e.target === elements.modal.overlay) closeModal();
     });
 
-    // Shopping
+
     elements.shopping.clearBtn.addEventListener('click', () => {
         state.shoppingList = [];
         saveState();
@@ -100,19 +103,19 @@ function bindEvents() {
     });
 }
 
-// Navigation
+
 function switchView(viewName) {
     state.currentView = viewName;
-    
-    // Update active nav
+
+
     Object.keys(elements.nav).forEach(k => {
-        if(elements.nav[k] && elements.nav[k].classList) {
+        if (elements.nav[k] && elements.nav[k].classList) {
             elements.nav[k].classList.remove('active');
         }
     });
-    if(elements.nav[viewName]) elements.nav[viewName].classList.add('active');
+    if (elements.nav[viewName]) elements.nav[viewName].classList.add('active');
 
-    // Update active view
+
     Object.keys(elements.views).forEach(k => {
         elements.views[k].classList.add('hidden');
         elements.views[k].classList.remove('active');
@@ -120,18 +123,18 @@ function switchView(viewName) {
     elements.views[viewName].classList.remove('hidden');
     elements.views[viewName].classList.add('active');
 
-    if(viewName === 'favorites') renderFavorites();
-    if(viewName === 'shopping') renderShoppingList();
+    if (viewName === 'favorites') renderFavorites();
+    if (viewName === 'shopping') renderShoppingList();
 }
 
-// API Functions
+
 async function fetchCategories() {
     try {
         const res = await fetch(`${API_BASE_URL}/categories.php`);
         const data = await res.json();
-        
+
         const fragment = document.createDocumentFragment();
-        // Default Option is already there
+
         data.categories.forEach(cat => {
             const opt = document.createElement('option');
             opt.value = cat.strCategory;
@@ -147,8 +150,8 @@ async function fetchCategories() {
 async function handleSearch() {
     const query = elements.search.input.value.trim();
     const type = elements.search.type.value;
-    
-    // Reset category dropdown
+
+
     elements.search.category.value = '';
 
     if (type === 'name') {
@@ -168,7 +171,7 @@ async function fetchRecipesByName(query) {
         const res = await fetch(`${API_BASE_URL}/search.php?s=${query}`);
         const data = await res.json();
         renderRecipeGrid(data.meals, elements.grids.home);
-    } catch(e) {
+    } catch (e) {
         showError();
     }
     hideLoading();
@@ -180,7 +183,7 @@ async function fetchRecipesByIngredient(query) {
         const res = await fetch(`${API_BASE_URL}/filter.php?i=${query}`);
         const data = await res.json();
         renderRecipeGrid(data.meals, elements.grids.home);
-    } catch(e) {
+    } catch (e) {
         showError();
     }
     hideLoading();
@@ -192,7 +195,7 @@ async function fetchRecipesByCategory(category) {
         const res = await fetch(`${API_BASE_URL}/filter.php?c=${category}`);
         const data = await res.json();
         renderRecipeGrid(data.meals, elements.grids.home);
-    } catch(e) {
+    } catch (e) {
         showError();
     }
     hideLoading();
@@ -203,22 +206,22 @@ async function fetchRecipeDetails(id) {
     try {
         const res = await fetch(`${API_BASE_URL}/lookup.php?i=${id}`);
         const data = await res.json();
-        if(data.meals && data.meals.length > 0) {
+        if (data.meals && data.meals.length > 0) {
             renderModal(data.meals[0]);
         }
-    } catch(e) {
+    } catch (e) {
         showToast('Failed to load recipe details');
     }
     hideLoading();
 }
 
-// Rendering
+
 function renderRecipeGrid(meals, container) {
     container.innerHTML = '';
     elements.utils.noResultsMsg.classList.add('hidden');
 
     if (!meals) {
-        if(container === elements.grids.home) {
+        if (container === elements.grids.home) {
             elements.utils.noResultsMsg.classList.remove('hidden');
         }
         return;
@@ -245,21 +248,19 @@ function renderRecipeGrid(meals, container) {
                 </div>
             </div>
         `;
-        
-        // Let's bind internal buttons cleanly without many listeners
-        // View Action
+
+
         const viewBtn = card.querySelector('.view-recipe-btn');
         viewBtn.addEventListener('click', (e) => {
             e.stopPropagation();
             fetchRecipeDetails(meal.idMeal);
         });
 
-        // Favorite Toggle
         const favBtn = card.querySelector('.heart');
         favBtn.addEventListener('click', async (e) => {
             e.stopPropagation();
-            // If we don't have full details, fetch them to save
-            if(!meal.strInstructions) {
+
+            if (!meal.strInstructions) {
                 const fullMeal = await getFullRecipe(meal.idMeal);
                 toggleFavorite(fullMeal, favBtn);
             } else {
@@ -267,11 +268,11 @@ function renderRecipeGrid(meals, container) {
             }
         });
 
-        // Shopping Toggle
+
         const shopBtn = card.querySelector('.list');
         shopBtn.addEventListener('click', async (e) => {
             e.stopPropagation();
-            if(!meal.strInstructions) {
+            if (!meal.strInstructions) {
                 const fullMeal = await getFullRecipe(meal.idMeal);
                 toggleShoppingList(fullMeal, shopBtn);
             } else {
@@ -285,7 +286,7 @@ function renderRecipeGrid(meals, container) {
     container.appendChild(fragment);
 }
 
-// Helpers to get full recipe object if listing only provides basic info
+
 async function getFullRecipe(id) {
     try {
         const res = await fetch(`${API_BASE_URL}/lookup.php?i=${id}`);
@@ -349,7 +350,7 @@ function renderModal(meal) {
         </div>
     `;
 
-    // Bind modal actions
+
     document.getElementById('modal-fav-btn').addEventListener('click', (e) => {
         toggleFavorite(meal, e.currentTarget);
     });
@@ -358,7 +359,7 @@ function renderModal(meal) {
     });
 
     elements.modal.overlay.classList.remove('hidden');
-    document.body.style.overflow = 'hidden'; // Stop background scrolling
+    document.body.style.overflow = 'hidden';
 }
 
 function closeModal() {
@@ -366,7 +367,7 @@ function closeModal() {
     document.body.style.overflow = '';
 }
 
-// State Management
+
 function isFavorite(id) {
     return state.favorites.some(f => f.idMeal === id);
 }
@@ -376,9 +377,9 @@ function isShopping(id) {
 }
 
 function toggleFavorite(meal, btnElement) {
-    if(!meal) return;
+    if (!meal) return;
     const idx = state.favorites.findIndex(f => f.idMeal === meal.idMeal);
-    if(idx > -1) {
+    if (idx > -1) {
         state.favorites.splice(idx, 1);
         showToast('Removed from Favorites');
         setBtnState(btnElement, false, 'heart');
@@ -388,18 +389,18 @@ function toggleFavorite(meal, btnElement) {
         setBtnState(btnElement, true, 'heart');
     }
     saveState();
-    if(state.currentView === 'favorites') renderFavorites();
+    if (state.currentView === 'favorites') renderFavorites();
 }
 
 function toggleShoppingList(meal, btnElement) {
-    if(!meal) return;
+    if (!meal) return;
     const idx = state.shoppingList.findIndex(s => s.idMeal === meal.idMeal);
-    if(idx > -1) {
+    if (idx > -1) {
         state.shoppingList.splice(idx, 1);
         showToast('Removed from Shopping List');
         setBtnState(btnElement, false, 'list');
     } else {
-        if(state.shoppingList.length >= 3) {
+        if (state.shoppingList.length >= 3) {
             showToast('Shopping list limit reached (Max 3 Recipes)');
             return;
         }
@@ -409,12 +410,12 @@ function toggleShoppingList(meal, btnElement) {
     }
     saveState();
     updateBadges();
-    if(state.currentView === 'shopping') renderShoppingList();
+    if (state.currentView === 'shopping') renderShoppingList();
 }
 
 function setBtnState(btn, active, iconName) {
-    if(!btn) return;
-    if(active) {
+    if (!btn) return;
+    if (active) {
         btn.classList.add('active');
         btn.innerHTML = `<ion-icon name="${iconName}"></ion-icon>`;
     } else {
@@ -426,11 +427,10 @@ function setBtnState(btn, active, iconName) {
 function saveState() {
     localStorage.setItem('mealMasterFavorites', JSON.stringify(state.favorites));
     localStorage.setItem('mealMasterShopping', JSON.stringify(state.shoppingList));
-    
-    // Sync UI to state wherever it's showing (since same card might be in home and favs)
+
+
     document.querySelectorAll('.recipe-actions').forEach(container => {
-        // Just force re-render if needed, but doing it granularly is complex.
-        // It's mostly covered.
+
     });
 }
 
@@ -438,7 +438,7 @@ function updateBadges() {
     elements.nav.shoppingBadge.textContent = state.shoppingList.length;
 }
 
-// Views Renderers
+
 function renderFavorites() {
     if (state.favorites.length === 0) {
         elements.grids.favorites.innerHTML = '';
@@ -452,22 +452,22 @@ function renderFavorites() {
 function renderShoppingList() {
     const listContainer = elements.shopping.recipeList;
     const ingContainer = elements.shopping.ingredientList;
-    
+
     listContainer.innerHTML = '';
     ingContainer.innerHTML = '';
-    
+
     if (state.shoppingList.length === 0) {
         elements.shopping.noShoppingMsg.classList.remove('hidden');
         document.querySelector('.shopping-content').classList.add('hidden');
         elements.shopping.clearBtn.classList.add('hidden');
         return;
     }
-    
+
     elements.shopping.noShoppingMsg.classList.add('hidden');
     document.querySelector('.shopping-content').classList.remove('hidden');
     elements.shopping.clearBtn.classList.remove('hidden');
 
-    // Recipes List (Left Col)
+
     state.shoppingList.forEach(meal => {
         const card = document.createElement('div');
         card.className = 'shopping-recipe-card';
@@ -479,15 +479,15 @@ function renderShoppingList() {
         listContainer.appendChild(card);
 
         card.querySelector('.remove-shopping-btn').addEventListener('click', () => {
-             // Fake a btn action
-             toggleShoppingList(meal, null);
+
+            toggleShoppingList(meal, null);
         });
     });
 
-    // Compile Ingredients (Right Col)
+
     const compiled = compileIngredients(state.shoppingList);
-    
-    // Render
+
+
     const ingTitle = document.createElement('h3');
     ingTitle.textContent = 'Ingredients to Buy';
     ingContainer.appendChild(ingTitle);
@@ -496,15 +496,15 @@ function renderShoppingList() {
     ul.className = 'compiled-list';
     compiled.forEach(item => {
         const li = document.createElement('li');
-        // Let's combine nicely
-        li.textContent = `${item.ingredient} - ${item.measures.map(m=>m.trim()).filter(Boolean).join(', ')}`;
+
+        li.textContent = `${item.ingredient} - ${item.measures.map(m => m.trim()).filter(Boolean).join(', ')}`;
         ul.appendChild(li);
     });
     ingContainer.appendChild(ul);
 }
 
 
-// Utilities
+
 function getIngredientsList(meal) {
     const ingredients = [];
     for (let i = 1; i <= 20; i++) {
@@ -525,23 +525,23 @@ function compileIngredients(meals) {
         const ings = getIngredientsList(meal);
         ings.forEach(ing => {
             const key = ing.ingredient.toLowerCase().trim();
-            if(!key) return;
+            if (!key) return;
 
-            if(!map.has(key)) {
+            if (!map.has(key)) {
                 map.set(key, {
-                    ingredient: ing.ingredient, // Keep original casing
+                    ingredient: ing.ingredient,
                     measures: [ing.measure]
                 });
             } else {
                 const existing = map.get(key);
-                if(ing.measure && !existing.measures.includes(ing.measure)) {
+                if (ing.measure && !existing.measures.includes(ing.measure)) {
                     existing.measures.push(ing.measure);
                 }
             }
         });
     });
 
-    return Array.from(map.values()).sort((a,b) => a.ingredient.localeCompare(b.ingredient));
+    return Array.from(map.values()).sort((a, b) => a.ingredient.localeCompare(b.ingredient));
 }
 
 function showLoading() {
@@ -565,11 +565,19 @@ function showToast(message) {
     const toast = elements.utils.toast;
     toast.textContent = message;
     toast.classList.remove('hidden');
-    
+
     clearTimeout(toastTimeout);
     toastTimeout = setTimeout(() => {
         toast.classList.add('hidden');
     }, 3000);
+}
+
+function debounce(func, timeout = 300) {
+    let timer;
+    return (...args) => {
+        clearTimeout(timer);
+        timer = setTimeout(() => { func.apply(this, args); }, timeout);
+    };
 }
 
 // Start
