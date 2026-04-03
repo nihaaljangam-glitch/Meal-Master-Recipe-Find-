@@ -4,6 +4,7 @@ let state = {
     favorites: JSON.parse(localStorage.getItem('mealMasterFavorites')) || [],
     shoppingList: JSON.parse(localStorage.getItem('mealMasterShopping')) || [],
     currentView: 'home',
+    allMeals: [],
 };
 
 
@@ -23,6 +24,7 @@ const elements = {
         input: document.getElementById('search-input'),
         type: document.getElementById('search-type'),
         category: document.getElementById('diet-filter'),
+        sort: document.getElementById('sort-filter'),
         btn: document.getElementById('search-btn'),
     },
     grids: {
@@ -54,9 +56,28 @@ async function init() {
     await fetchCategories();
     renderFavorites();
     renderShoppingList();
+    await fetchInitialDataset();
+}
 
-
-    fetchRecipesByName('');
+async function fetchInitialDataset() {
+    showLoading();
+    try {
+        const letters = ['b', 'c', 'p', 's', 'm'];
+        const results = await Promise.all(
+            letters.map(l => fetch(`${API_BASE_URL}/search.php?s=${l}`).then(r => r.json()))
+        );
+        state.allMeals = results
+            .reduce((acc, curr) => curr.meals ? acc.concat(curr.meals) : acc, [])
+            .reduce((acc, meal) => {
+                if (!acc.find(m => m.idMeal === meal.idMeal)) acc.push(meal);
+                return acc;
+            }, []);
+        
+        applyFilters();
+    } catch (e) {
+        showError();
+    }
+    hideLoading();
 }
 
 
@@ -66,27 +87,18 @@ function bindEvents() {
     elements.nav.favorites.addEventListener('click', () => switchView('favorites'));
     elements.nav.shopping.addEventListener('click', () => switchView('shopping'));
 
-
-    // Search
-    elements.search.btn.addEventListener('click', handleSearch);
-    elements.search.input.addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') handleSearch();
-    });
-    
-    // Dynamic 'Search as you type'
-    const debouncedSearch = debounce(handleSearch, 400);
-    elements.search.input.addEventListener('input', debouncedSearch);
-
-
-    elements.search.category.addEventListener('change', () => {
+    elements.search.btn.addEventListener('click', () => {
         elements.search.input.value = '';
-        const cat = elements.search.category.value;
-        if (cat) {
-            fetchRecipesByCategory(cat);
-        } else {
-            fetchRecipesByName('');
-        }
+        elements.search.type.value = 'name';
+        elements.search.category.value = '';
+        elements.search.sort.value = 'default';
+        applyFilters();
     });
+
+    elements.search.input.addEventListener('input', debounce(applyFilters, 300));
+    elements.search.type.addEventListener('change', applyFilters);
+    elements.search.category.addEventListener('change', applyFilters);
+    elements.search.sort.addEventListener('change', applyFilters);
 
 
     elements.modal.closeBtn.addEventListener('click', closeModal);
@@ -147,58 +159,42 @@ async function fetchCategories() {
     }
 }
 
-async function handleSearch() {
-    const query = elements.search.input.value.trim();
+function applyFilters() {
+    if (state.currentView !== 'home') return;
+    
+    let filtered = state.allMeals;
+
+    const query = elements.search.input.value.trim().toLowerCase();
     const type = elements.search.type.value;
 
-
-    elements.search.category.value = '';
-
-    if (type === 'name') {
-        fetchRecipesByName(query);
-    } else if (type === 'ingredient') {
-        if (!query) {
-            fetchRecipesByName('');
-        } else {
-            fetchRecipesByIngredient(query);
+    filtered = filtered.filter(meal => {
+        if (!query) return true;
+        if (type === 'name') {
+            return meal.strMeal.toLowerCase().includes(query);
+        } else if (type === 'ingredient') {
+            const ings = getIngredientsList(meal);
+            return ings.some(ing => ing.ingredient.toLowerCase().includes(query));
         }
-    }
-}
+        return true;
+    });
 
-async function fetchRecipesByName(query) {
-    showLoading();
-    try {
-        const res = await fetch(`${API_BASE_URL}/search.php?s=${query}`);
-        const data = await res.json();
-        renderRecipeGrid(data.meals, elements.grids.home);
-    } catch (e) {
-        showError();
-    }
-    hideLoading();
-}
+    const category = elements.search.category.value;
+    filtered = filtered.filter(meal => {
+        if (!category) return true;
+        return meal.strCategory === category;
+    });
 
-async function fetchRecipesByIngredient(query) {
-    showLoading();
-    try {
-        const res = await fetch(`${API_BASE_URL}/filter.php?i=${query}`);
-        const data = await res.json();
-        renderRecipeGrid(data.meals, elements.grids.home);
-    } catch (e) {
-        showError();
-    }
-    hideLoading();
-}
+    const sortVal = elements.search.sort.value;
+    filtered = filtered.map(m => m).sort((a, b) => {
+        if (sortVal === 'name-asc') {
+            return a.strMeal.localeCompare(b.strMeal);
+        } else if (sortVal === 'name-desc') {
+            return b.strMeal.localeCompare(a.strMeal);
+        }
+        return 0;
+    });
 
-async function fetchRecipesByCategory(category) {
-    showLoading();
-    try {
-        const res = await fetch(`${API_BASE_URL}/filter.php?c=${category}`);
-        const data = await res.json();
-        renderRecipeGrid(data.meals, elements.grids.home);
-    } catch (e) {
-        showError();
-    }
-    hideLoading();
+    renderRecipeGrid(filtered, elements.grids.home);
 }
 
 async function fetchRecipeDetails(id) {
@@ -506,42 +502,31 @@ function renderShoppingList() {
 
 
 function getIngredientsList(meal) {
-    const ingredients = [];
-    for (let i = 1; i <= 20; i++) {
-        if (meal[`strIngredient${i}`]) {
-            ingredients.push({
-                ingredient: meal[`strIngredient${i}`],
-                measure: meal[`strMeasure${i}`] || ''
-            });
-        }
-    }
-    return ingredients;
+    return Array.from({ length: 20 }, (_, i) => i + 1)
+        .filter(i => meal[`strIngredient${i}`] && meal[`strIngredient${i}`].trim() !== '')
+        .map(i => ({
+            ingredient: meal[`strIngredient${i}`].trim(),
+            measure: meal[`strMeasure${i}`] ? meal[`strMeasure${i}`].trim() : ''
+        }));
 }
 
 function compileIngredients(meals) {
-    const map = new Map();
+    return meals
+        .map(meal => getIngredientsList(meal))
+        .reduce((acc, ings) => acc.concat(ings), [])
+        .reduce((acc, ing) => {
+            const key = ing.ingredient.toLowerCase();
+            if (!key) return acc;
 
-    meals.forEach(meal => {
-        const ings = getIngredientsList(meal);
-        ings.forEach(ing => {
-            const key = ing.ingredient.toLowerCase().trim();
-            if (!key) return;
-
-            if (!map.has(key)) {
-                map.set(key, {
-                    ingredient: ing.ingredient,
-                    measures: [ing.measure]
-                });
-            } else {
-                const existing = map.get(key);
-                if (ing.measure && !existing.measures.includes(ing.measure)) {
-                    existing.measures.push(ing.measure);
-                }
+            const existing = acc.find(item => item.key === key);
+            if (!existing) {
+                acc.push({ key, ingredient: ing.ingredient, measures: [ing.measure].filter(Boolean) });
+            } else if (ing.measure && !existing.measures.includes(ing.measure)) {
+                existing.measures.push(ing.measure);
             }
-        });
-    });
-
-    return Array.from(map.values()).sort((a, b) => a.ingredient.localeCompare(b.ingredient));
+            return acc;
+        }, [])
+        .sort((a, b) => a.ingredient.localeCompare(b.ingredient));
 }
 
 function showLoading() {
