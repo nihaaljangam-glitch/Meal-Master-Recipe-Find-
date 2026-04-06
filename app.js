@@ -423,11 +423,6 @@ function setBtnState(btn, active, iconName) {
 function saveState() {
     localStorage.setItem('mealMasterFavorites', JSON.stringify(state.favorites));
     localStorage.setItem('mealMasterShopping', JSON.stringify(state.shoppingList));
-
-
-    document.querySelectorAll('.recipe-actions').forEach(container => {
-
-    });
 }
 
 function updateBadges() {
