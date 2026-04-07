@@ -5,6 +5,7 @@ let state = {
     shoppingList: JSON.parse(localStorage.getItem('mealMasterShopping')) || [],
     currentView: 'home',
     allMeals: [],
+    theme: localStorage.getItem('mealMasterTheme') || 'light',
 };
 
 
@@ -14,6 +15,7 @@ const elements = {
         favorites: document.getElementById('nav-favorites'),
         shopping: document.getElementById('nav-shopping'),
         shoppingBadge: document.getElementById('shopping-badge'),
+        themeToggle: document.getElementById('theme-toggle'),
     },
     views: {
         home: document.getElementById('view-home'),
@@ -51,6 +53,7 @@ const elements = {
 };
 
 async function init() {
+    applyTheme(state.theme);
     bindEvents();
     updateBadges();
     await fetchCategories();
@@ -86,6 +89,12 @@ function bindEvents() {
     elements.nav.home.addEventListener('click', () => switchView('home'));
     elements.nav.favorites.addEventListener('click', () => switchView('favorites'));
     elements.nav.shopping.addEventListener('click', () => switchView('shopping'));
+
+    elements.nav.themeToggle.addEventListener('click', () => {
+        state.theme = state.theme === 'light' ? 'dark' : 'light';
+        localStorage.setItem('mealMasterTheme', state.theme);
+        applyTheme(state.theme);
+    });
 
     elements.search.btn.addEventListener('click', () => {
         elements.search.input.value = '';
@@ -558,6 +567,20 @@ function debounce(func, timeout = 300) {
         clearTimeout(timer);
         timer = setTimeout(() => { func.apply(this, args); }, timeout);
     };
+}
+
+function applyTheme(theme) {
+    if (theme === 'dark') {
+        document.body.setAttribute('data-theme', 'dark');
+        if (elements.nav.themeToggle) {
+            elements.nav.themeToggle.innerHTML = '<ion-icon name="sunny-outline"></ion-icon>';
+        }
+    } else {
+        document.body.removeAttribute('data-theme');
+        if (elements.nav.themeToggle) {
+            elements.nav.themeToggle.innerHTML = '<ion-icon name="moon-outline"></ion-icon>';
+        }
+    }
 }
 
 // Start

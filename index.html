@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,10 +8,11 @@
     <meta name="description" content="Find delicious recipes, save favorites, and generate shopping lists.">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
-    <!-- Ionicons for some quick icons -->
+
     <script type="module" src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.esm.js"></script>
     <script nomodule src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.js"></script>
 </head>
+
 <body>
     <header class="app-header">
         <div class="header-container">
@@ -26,12 +28,15 @@
                 <button id="nav-shopping" class="nav-btn">
                     <ion-icon name="list"></ion-icon> Shopping List <span id="shopping-badge" class="badge">0</span>
                 </button>
+                <button id="theme-toggle" class="nav-btn" aria-label="Toggle Theme">
+                    <ion-icon name="moon-outline"></ion-icon>
+                </button>
             </nav>
         </div>
     </header>
 
     <main class="main-content">
-        <!-- Home / Search View -->
+
         <section id="view-home" class="view-section active">
             <div class="search-hero">
                 <h2>What are you craving?</h2>
@@ -46,7 +51,7 @@
                     </select>
                     <select id="diet-filter" class="filter-select">
                         <option value="">All Categories</option>
-                        <!-- Populated dynamically (e.g., Vegetarian, Vegan, Beef, Chicken) -->
+
                     </select>
                     <select id="sort-filter" class="filter-select">
                         <option value="default">Sort By</option>
@@ -63,19 +68,19 @@
                     <p>Whipping up some recipes...</p>
                 </div>
                 <div id="recipe-grid" class="recipe-grid">
-                    <!-- Recipes injected here -->
+
                 </div>
                 <p id="no-results-msg" class="hidden empty-state">No recipes found. Try a different search!</p>
             </div>
         </section>
 
-        <!-- Favorites View -->
+
         <section id="view-favorites" class="view-section hidden">
             <div class="section-header">
                 <h2>Your Favorites</h2>
             </div>
             <div id="favorites-grid" class="recipe-grid">
-                <!-- Favorite Recipes injected here -->
+
             </div>
             <p id="no-favorites-msg" class="hidden empty-state">You haven't saved any recipes yet.</p>
         </section>
@@ -91,29 +96,31 @@
             </div>
             <div class="shopping-content">
                 <div class="shopping-recipes-list" id="shopping-recipes-list">
-                    <!-- Cards of recipes currently in list -->
+
                 </div>
                 <div class="shopping-ingredients" id="shopping-ingredients-list">
-                    <!-- Deduplicated ingredients list -->
+
                 </div>
             </div>
-            <p id="no-shopping-msg" class="hidden empty-state">Your shopping list is empty. Add up to 3 recipes to compile ingredients.</p>
+            <p id="no-shopping-msg" class="hidden empty-state">Your shopping list is empty. Add up to 3 recipes to
+                compile ingredients.</p>
         </section>
     </main>
 
-    <!-- Recipe Details Modal -->
+
     <div id="recipe-modal" class="modal-overlay hidden">
         <div class="modal-content">
             <button id="close-modal" class="close-btn"><ion-icon name="close-outline"></ion-icon></button>
             <div id="modal-body">
-                <!-- Details injected here -->
+
             </div>
         </div>
     </div>
 
-    <!-- Toast Notification -->
+
     <div id="toast" class="toast hidden"></div>
 
     <script src="app.js"></script>
 </body>
+
 </html>

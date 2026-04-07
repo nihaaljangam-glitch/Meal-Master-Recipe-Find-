@@ -9,6 +9,12 @@
     --border: #e2e8f0;
     --danger: #e63946;
     --success: #2a9d8f;
+
+    --hover-bg: #f1f5f9;
+    --surface-hover: #e2e8f0;
+    --active-bg: #fff0ed;
+    --danger-bg: #ffe3e6;
+    --spinner-bg: #f3f3f3;
     
     --radius: 12px;
     --radius-lg: 20px;
@@ -17,6 +23,25 @@
     --shadow-lg: 0 12px 24px rgba(0,0,0,0.12);
     
     font-family: 'Inter', sans-serif;
+}
+
+[data-theme="dark"] {
+    --secondary: #f8fafc;
+    --background: #0f172a;
+    --surface: #1e293b;
+    --text-main: #f1f5f9;
+    --text-muted: #94a3b8;
+    --border: #334155;
+    
+    --hover-bg: #334155;
+    --surface-hover: #475569;
+    --active-bg: #3f1f1a;
+    --danger-bg: #4c1d24;
+    --spinner-bg: #334155;
+    
+    --shadow-sm: 0 2px 4px rgba(0,0,0,0.2);
+    --shadow-md: 0 8px 16px rgba(0,0,0,0.3);
+    --shadow-lg: 0 12px 24px rgba(0,0,0,0.4);
 }
 
 * {
@@ -79,13 +104,13 @@ body {
 }
 
 .nav-btn:hover {
-    background-color: #f1f5f9;
+    background-color: var(--hover-bg);
     color: var(--primary);
 }
 
 .nav-btn.active {
     color: var(--primary);
-    background-color: #fff0ed;
+    background-color: var(--active-bg);
 }
 
 .badge {
@@ -216,7 +241,7 @@ button {
 }
 
 .secondary-btn:hover {
-    background-color: #fff0ed;
+    background-color: var(--active-bg);
 }
 
 /* Grid & Cards */
@@ -280,7 +305,7 @@ button {
 }
 
 .icon-btn {
-    background: #f1f5f9;
+    background: var(--hover-bg);
     border: none;
     width: 36px;
     height: 36px;
@@ -295,17 +320,17 @@ button {
 }
 
 .icon-btn:hover {
-    background: #e2e8f0;
+    background: var(--surface-hover);
 }
 
 .icon-btn.active.heart {
     color: var(--danger);
-    background: #ffe3e6;
+    background: var(--danger-bg);
 }
 
 .icon-btn.active.list {
     color: var(--primary);
-    background: #fff0ed;
+    background: var(--active-bg);
 }
 
 /* Modal */
@@ -404,7 +429,7 @@ button {
     display: flex;
     align-items: center;
     gap: 0.4rem;
-    background: #f1f5f9;
+    background: var(--hover-bg);
     padding: 0.3rem 0.8rem;
     border-radius: 999px;
 }
@@ -507,7 +532,7 @@ button {
 .shopping-ingredients h3 {
     margin-bottom: 1.5rem;
     padding-bottom: 1rem;
-    border-bottom: 2px solid #f1f5f9;
+    border-bottom: 2px solid var(--hover-bg);
 }
 
 .compiled-list {
@@ -550,7 +575,7 @@ button {
 .spinner {
     width: 40px;
     height: 40px;
-    border: 4px solid #f3f3f3;
+    border: 4px solid var(--spinner-bg);
     border-top: 4px solid var(--primary);
     border-radius: 50%;
     animation: spin 1s linear infinite;
