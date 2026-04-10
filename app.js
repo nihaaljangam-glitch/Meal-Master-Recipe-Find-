@@ -117,10 +117,55 @@ function bindEvents() {
 
 
     elements.shopping.clearBtn.addEventListener('click', () => {
-        state.shoppingList = [];
-        saveState();
-        renderShoppingList();
-        showToast('Shopping list cleared');
+        if (confirm('Are you sure you want to clear your shopping list?')) {
+            state.shoppingList = [];
+            saveState();
+            renderShoppingList();
+            showToast('Shopping list cleared');
+        }
+    });
+
+    // Event Delegation for Shopping List
+    elements.shopping.recipeList.addEventListener('click', (e) => {
+        const btn = e.target.closest('.remove-shopping-btn');
+        if (!btn) return;
+
+        const card = btn.parentElement;
+        const mealId = btn.dataset.id;
+        const meal = state.shoppingList.find(m => m.idMeal === mealId);
+
+        if (meal) {
+            card.style.opacity = '0';
+            card.style.transform = 'translateX(-20px)';
+            setTimeout(() => {
+                toggleShoppingList(meal, null);
+            }, 300);
+        }
+    });
+
+    // Event Delegation for Grids
+    [elements.grids.home, elements.grids.favorites].forEach(grid => {
+        grid.addEventListener('click', async (e) => {
+            const card = e.target.closest('.recipe-card');
+            if (!card) return;
+
+            const mealId = card.querySelector('.view-recipe-btn').dataset.id;
+            const actionBtn = e.target.closest('button');
+            
+            if (!actionBtn) return;
+
+            if (actionBtn.classList.contains('view-recipe-btn')) {
+                fetchRecipeDetails(mealId);
+            } else if (actionBtn.classList.contains('heart')) {
+                const meal = state.allMeals.find(m => m.idMeal === mealId) || state.favorites.find(m => m.idMeal === mealId);
+                const fullMeal = meal?.strInstructions ? meal : await getFullRecipe(mealId);
+                toggleFavorite(fullMeal, actionBtn);
+            } else if (actionBtn.classList.contains('list')) {
+                const meal = state.allMeals.find(m => m.idMeal === mealId) || state.favorites.find(m => m.idMeal === mealId);
+                const fullMeal = meal?.strInstructions ? meal : await getFullRecipe(mealId);
+                toggleShoppingList(fullMeal, actionBtn);
+            }
+        });
     });
 }
 
@@ -225,70 +270,41 @@ function renderRecipeGrid(meals, container) {
     container.innerHTML = '';
     elements.utils.noResultsMsg.classList.add('hidden');
 
-    if (!meals) {
+    if (!meals || meals.length === 0) {
         if (container === elements.grids.home) {
             elements.utils.noResultsMsg.classList.remove('hidden');
         }
         return;
     }
 
-    const fragment = document.createDocumentFragment();
-    meals.forEach(meal => {
-        const card = document.createElement('div');
-        card.className = 'recipe-card';
-        card.innerHTML = `
-            <img src="${meal.strMealThumb}/preview" alt="${meal.strMeal}" class="recipe-img" loading="lazy">
-            <div class="recipe-info">
-                ${meal.strCategory ? `<span class="recipe-category">${meal.strCategory}</span>` : ''}
-                <h3 class="recipe-title">${meal.strMeal}</h3>
-                <div class="recipe-actions">
-                    <button class="icon-btn heart ${isFavorite(meal.idMeal) ? 'active' : ''}" data-id="${meal.idMeal}" aria-label="Toggle Favorite">
-                        <ion-icon name="${isFavorite(meal.idMeal) ? 'heart' : 'heart-outline'}"></ion-icon>
-                    </button>
-                    <!-- Detail check is for simple preview vs full detail -->
-                    <button class="secondary-btn view-recipe-btn" data-id="${meal.idMeal}">View Recipe</button>
-                    <button class="icon-btn list ${isShopping(meal.idMeal) ? 'active' : ''}" data-id="${meal.idMeal}" aria-label="Toggle Shopping List">
-                        <ion-icon name="${isShopping(meal.idMeal) ? 'list' : 'list-outline'}"></ion-icon>
-                    </button>
+    const html = meals.map((meal, index) => {
+        const favActive = isFavorite(meal.idMeal);
+        const shopActive = isShopping(meal.idMeal);
+        const delay = (index % 12) * 0.05;
+        
+        return `
+            <div class="recipe-card stagger-in" style="animation-delay: ${delay}s">
+                <div class="recipe-img-container" style="overflow:hidden; height:240px;">
+                    <img src="${meal.strMealThumb}/preview" alt="${meal.strMeal}" class="recipe-img" loading="lazy">
+                </div>
+                <div class="recipe-info">
+                    ${meal.strCategory ? `<span class="recipe-category">${meal.strCategory}</span>` : ''}
+                    <h3 class="recipe-title">${meal.strMeal}</h3>
+                    <div class="recipe-actions">
+                        <button class="secondary-btn view-recipe-btn" data-id="${meal.idMeal}">View Recipe</button>
+                        <button class="icon-btn heart ${favActive ? 'active' : ''}" aria-label="Toggle Favorite">
+                            <ion-icon name="${favActive ? 'heart' : 'heart-outline'}"></ion-icon>
+                        </button>
+                        <button class="icon-btn list ${shopActive ? 'active' : ''}" aria-label="Toggle Shopping List">
+                            <ion-icon name="${shopActive ? 'list' : 'list-outline'}"></ion-icon>
+                        </button>
+                    </div>
                 </div>
             </div>
         `;
+    }).join('');
 
-
-        const viewBtn = card.querySelector('.view-recipe-btn');
-        viewBtn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            fetchRecipeDetails(meal.idMeal);
-        });
-
-        const favBtn = card.querySelector('.heart');
-        favBtn.addEventListener('click', async (e) => {
-            e.stopPropagation();
-
-            if (!meal.strInstructions) {
-                const fullMeal = await getFullRecipe(meal.idMeal);
-                toggleFavorite(fullMeal, favBtn);
-            } else {
-                toggleFavorite(meal, favBtn);
-            }
-        });
-
-
-        const shopBtn = card.querySelector('.list');
-        shopBtn.addEventListener('click', async (e) => {
-            e.stopPropagation();
-            if (!meal.strInstructions) {
-                const fullMeal = await getFullRecipe(meal.idMeal);
-                toggleShoppingList(fullMeal, shopBtn);
-            } else {
-                toggleShoppingList(meal, shopBtn);
-            }
-        });
-
-        fragment.appendChild(card);
-    });
-
-    container.appendChild(fragment);
+    container.innerHTML = html;
 }
 
 
@@ -318,7 +334,14 @@ function renderModal(meal) {
                     <div class="modal-title">
                         <h2>${meal.strMeal}</h2>
                     </div>
-                    ${meal.strTags ? `<div class="modal-meta"><span><ion-icon name="pricetags-outline"></ion-icon> ${meal.strTags.split(',').join(', ')}</span></div>` : ''}
+                    ${meal.strTags ? `
+                    <div class="modal-meta">
+                        <span><ion-icon name="pricetags-outline"></ion-icon> ${meal.strTags.split(',').join(', ')}</span>
+                        <span><ion-icon name="earth-outline"></ion-icon> ${meal.strArea}</span>
+                    </div>` : `
+                    <div class="modal-meta">
+                        <span><ion-icon name="earth-outline"></ion-icon> ${meal.strArea}</span>
+                    </div>`}
                 </div>
                 <div class="modal-actions">
                     <button class="icon-btn heart ${favActive ? 'active' : ''}" id="modal-fav-btn">
@@ -477,11 +500,6 @@ function renderShoppingList() {
             <button class="remove-shopping-btn" data-id="${meal.idMeal}"><ion-icon name="trash-outline"></ion-icon></button>
         `;
         listContainer.appendChild(card);
-
-        card.querySelector('.remove-shopping-btn').addEventListener('click', () => {
-
-            toggleShoppingList(meal, null);
-        });
     });
 
 
@@ -496,8 +514,12 @@ function renderShoppingList() {
     ul.className = 'compiled-list';
     compiled.forEach(item => {
         const li = document.createElement('li');
-
-        li.textContent = `${item.ingredient} - ${item.measures.map(m => m.trim()).filter(Boolean).join(', ')}`;
+        li.innerHTML = `
+            <div style="flex-grow:1">
+                <div style="font-weight:600">${item.ingredient}</div>
+                <div style="font-size:0.9rem; color:var(--muted)">${item.measures.map(m => m.trim()).filter(Boolean).join(', ')}</div>
+            </div>
+        `;
         ul.appendChild(li);
     });
     ingContainer.appendChild(ul);
